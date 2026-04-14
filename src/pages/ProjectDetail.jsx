@@ -92,16 +92,25 @@ export default function ProjectDetail() {
 
   function applyImport(result) {
     if (importRow === null) return
+    // Convert DD/MM/YYYY → YYYY-MM-DD for date inputs
+    function toIso(d) {
+      if (!d) return ''
+      const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+      if (m) return `${m[3]}-${m[2]}-${m[1]}`
+      return d
+    }
+    const isoDate = toIso(result.date)
     setRows(prev => prev.map((r, i) => {
       if (i !== importRow) return r
       return {
         ...r,
-        actual_start:  result.date || r.actual_start,
-        actual_finish: result.date || r.actual_finish,
-        str_mep: result.sm || r.str_mep,
-        arc_str: result.as || r.arc_str,
-        arc_mep: result.am || r.arc_mep,
-        mep_mep: result.mm || r.mep_mep,
+        work_package:  result.name || r.work_package,
+        actual_start:  isoDate || r.actual_start,
+        actual_finish: isoDate || r.actual_finish,
+        str_mep: result.sm ?? r.str_mep,
+        arc_str: result.as ?? r.arc_str,
+        arc_mep: result.am ?? r.arc_mep,
+        mep_mep: result.mm ?? r.mep_mep,
         _dirty: true
       }
     }))

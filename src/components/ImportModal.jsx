@@ -15,13 +15,25 @@ function pairKey(sheetName) {
 }
 
 function parseDate(fname) {
-  if (fname.length < 6) return ''
-  const p = fname.substring(0, 6)
-  if (!/^\d+$/.test(p)) return ''
-  const yy = p.substring(0,2), mm = p.substring(2,4), dd = p.substring(4,6)
-  const m = parseInt(mm), d = parseInt(dd)
-  if (m < 1 || m > 12 || d < 1 || d > 31) return ''
-  return `${dd}/${mm}/20${yy}`
+  // Try YYMMDD at start (e.g. 260414_ProjectName)
+  const m1 = fname.match(/^(\d{2})(\d{2})(\d{2})/)
+  if (m1) {
+    const yy = m1[1], mm = m1[2], dd = m1[3]
+    const month = parseInt(mm), day = parseInt(dd)
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${dd}/${mm}/20${yy}`
+    }
+  }
+  // Try YYYYMMDD
+  const m2 = fname.match(/(\d{4})(\d{2})(\d{2})/)
+  if (m2) {
+    const yyyy = m2[1], mm = m2[2], dd = m2[3]
+    const month = parseInt(mm), day = parseInt(dd)
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${dd}/${mm}/${yyyy}`
+    }
+  }
+  return ''
 }
 
 async function parseXlsx(file) {
