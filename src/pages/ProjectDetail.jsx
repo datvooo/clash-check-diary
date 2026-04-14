@@ -41,6 +41,7 @@ export default function ProjectDetail() {
   const [saving, setSaving]   = useState(false)
   const [importRow, setImportRow] = useState(null) // index for import target
   const [showImport, setShowImport] = useState(false)
+  const [sortDir, setSortDir] = useState(null) // null | 'desc' | 'asc'
 
   useEffect(() => { load() }, [id])
 
@@ -118,6 +119,19 @@ export default function ProjectDetail() {
 
   const dirtyCount = rows.filter(r => r._dirty).length
 
+  // Sort rows by actual_start for display (keeps original index for editing)
+  const displayRows = sortDir
+    ? [...rows].sort((a, b) => {
+        const da = a.actual_start || ''
+        const db = b.actual_start || ''
+        return sortDir === 'desc' ? db.localeCompare(da) : da.localeCompare(db)
+      })
+    : rows
+
+  function toggleSort() {
+    setSortDir(prev => prev === null ? 'desc' : prev === 'desc' ? 'asc' : null)
+  }
+
   if (!project) return <div className="p-8 text-gray-400">Loading…</div>
 
   const totSM = rows.reduce((s,r) => s + (r.str_mep||0), 0)
@@ -158,7 +172,14 @@ export default function ProjectDetail() {
             <tr className="bg-[#1E3A5F] text-white text-xs">
               <th className="px-2 py-2 text-center w-8">#</th>
               <th className="px-3 py-2 text-left min-w-[180px]">Work Package</th>
-              <th className="px-2 py-2 text-center w-28">Start</th>
+              <th className="px-2 py-2 text-center w-28">
+                <button onClick={toggleSort} className="flex items-center gap-1 mx-auto hover:text-teal-300 transition">
+                  Start
+                  <span className="text-xs">
+                    {sortDir === 'desc' ? '↓' : sortDir === 'asc' ? '↑' : '↕'}
+                  </span>
+                </button>
+              </th>
               <th className="px-2 py-2 text-center w-28">Finish</th>
               <th className="px-2 py-2 text-center w-28">Status</th>
               <th className="px-2 py-2 text-center w-20 bg-orange-700/80">STR/MEP</th>
@@ -172,47 +193,48 @@ export default function ProjectDetail() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => {
+            {displayRows.map((r, i) => {
+              const realIdx = rows.indexOf(r)
               const total = (r.str_mep||0)+(r.arc_str||0)+(r.arc_mep||0)+(r.mep_mep||0)
               const bg = r._dirty ? 'bg-amber-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
               return (
                 <tr key={r.id || i} className={`${bg} border-b border-gray-100 hover:bg-teal-50/20`}>
                   <td className="px-2 py-1.5 text-center text-xs text-gray-400">{i+1}</td>
                   <td className="px-1 py-1">
-                    <CellInput value={r.work_package} onChange={v => updateRow(i,'work_package',v)}/>
+                    <CellInput value={r.work_package} onChange={v => updateRow(realIdx,'work_package',v)}/>
                   </td>
                   <td className="px-1 py-1">
-                    <CellInput type="date" value={r.actual_start} onChange={v => updateRow(i,'actual_start',v)} className="text-center"/>
+                    <CellInput type="date" value={r.actual_start} onChange={v => updateRow(realIdx,'actual_start',v)} className="text-center"/>
                   </td>
                   <td className="px-1 py-1">
-                    <CellInput type="date" value={r.actual_finish} onChange={v => updateRow(i,'actual_finish',v)} className="text-center"/>
+                    <CellInput type="date" value={r.actual_finish} onChange={v => updateRow(realIdx,'actual_finish',v)} className="text-center"/>
                   </td>
                   <td className="px-1 py-1">
-                    <select value={r.status || 'PENDING'} onChange={e => updateRow(i,'status',e.target.value)}
+                    <select value={r.status || 'PENDING'} onChange={e => updateRow(realIdx,'status',e.target.value)}
                       className={`w-full text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${statusColor(r.status)}`}>
                       {STATUSES.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </td>
-                  <td className="px-1 py-1"><NumCell value={r.str_mep} onChange={v => updateRow(i,'str_mep',v)}/></td>
-                  <td className="px-1 py-1"><NumCell value={r.arc_str} onChange={v => updateRow(i,'arc_str',v)}/></td>
-                  <td className="px-1 py-1"><NumCell value={r.arc_mep} onChange={v => updateRow(i,'arc_mep',v)}/></td>
-                  <td className="px-1 py-1"><NumCell value={r.mep_mep} onChange={v => updateRow(i,'mep_mep',v)}/></td>
+                  <td className="px-1 py-1"><NumCell value={r.str_mep} onChange={v => updateRow(realIdx,'str_mep',v)}/></td>
+                  <td className="px-1 py-1"><NumCell value={r.arc_str} onChange={v => updateRow(realIdx,'arc_str',v)}/></td>
+                  <td className="px-1 py-1"><NumCell value={r.arc_mep} onChange={v => updateRow(realIdx,'arc_mep',v)}/></td>
+                  <td className="px-1 py-1"><NumCell value={r.mep_mep} onChange={v => updateRow(realIdx,'mep_mep',v)}/></td>
                   <td className="px-2 py-1 text-center text-sm font-semibold text-[#0D9488]">{total || '-'}</td>
                   <td className="px-1 py-1">
-                    <select value={r.coordinator || ''} onChange={e => updateRow(i,'coordinator',e.target.value)}
+                    <select value={r.coordinator || ''} onChange={e => updateRow(realIdx,'coordinator',e.target.value)}
                       className="w-full text-xs px-2 py-1 border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-teal-400 rounded">
                       <option value="">—</option>
                       {COORDS.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </td>
                   <td className="px-2 py-1 text-center">
-                    <button onClick={() => openImport(i)}
+                    <button onClick={() => openImport(realIdx)}
                       className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-1 mx-auto">
                       <Upload size={12}/> xlsx
                     </button>
                   </td>
                   <td className="px-1 py-1 text-center">
-                    <button onClick={() => deleteRow(i)} className="text-gray-300 hover:text-red-500 transition">
+                    <button onClick={() => deleteRow(realIdx)} className="text-gray-300 hover:text-red-500 transition">
                       <Trash2 size={14}/>
                     </button>
                   </td>
